@@ -33,7 +33,15 @@ class HASOC_Meme(ImageBaseDataset):
 
         # Use local paths instead of URLs
         self.DATASET_PATH = os.path.join(data_root, '100_Combined_train_data.tsv')
-        self.IMAGE_DIR = os.path.join(data_root, f'{self.language}_train_images')
+
+        # Special handling for split Hindi directories
+        self.data_root = data_root  # Store for later use
+        if self.language == 'Hindi':
+            # We'll handle the split directories in load_data
+            self.IMAGE_DIR = None  # Not using a single directory for Hindi
+        else:
+            # Normal handling for other languages
+            self.IMAGE_DIR = os.path.join(data_root, f'{self.language}_train_images')
 
         # Initialize with empty URLs since we're using local paths
         self.DATASET_URL = {}
@@ -53,10 +61,29 @@ class HASOC_Meme(ImageBaseDataset):
         """Override to load from local TSV"""
         data = load(self.DATASET_PATH)
 
-        # Convert image paths to absolute paths based on language
-        data['image_path'] = data[f'{self.language}_Ids'].apply(
-            lambda x: os.path.join(self.IMAGE_DIR, f'{x}.jpg')
-        )
+        # Handle split Hindi directories
+        if self.language == 'Hindi':
+            def find_hindi_image_path(image_id):
+                # Check both part1 and part2 directories
+                path1 = os.path.join(self.data_root, f'Hindi_train_images_part1/{image_id}.jpg')
+                path2 = os.path.join(self.data_root, f'Hindi_train_images_part2/{image_id}.jpg')
+
+                if os.path.exists(path1):
+                    return path1
+                elif os.path.exists(path2):
+                    return path2
+                else:
+                    # If not found in either, default to part1 (for consistency with error handling)
+                    print(f"Warning: Image {image_id}.jpg not found in either Hindi directory")
+                    return path1
+
+            # Apply the custom path finder
+            data['image_path'] = data[f'{self.language}_Ids'].apply(find_hindi_image_path)
+        else:
+            # Regular path for other languages
+            data['image_path'] = data[f'{self.language}_Ids'].apply(
+                lambda x: os.path.join(self.IMAGE_DIR, f'{x}.jpg')
+            )
 
         print(f"Loaded {len(data)} memes for {self.language}")
         return data
