@@ -41,7 +41,7 @@ class OpenAIWrapper(BaseAPI):
                  verbose: bool = False,
                  system_prompt: str = None,
                  temperature: float = 0,
-                 timeout: int = 60,
+                 timeout: int = 300,
                  api_base: str = None,
                  max_tokens: int = 2048,
                  img_size: int = 512,
@@ -148,6 +148,9 @@ class OpenAIWrapper(BaseAPI):
             else:
                 self.logger.error('Unknown API Base. ')
                 raise NotImplementedError
+            if os.environ.get('BOYUE', None):
+                self.api_base = os.environ.get('BOYUE_API_BASE')
+                self.key = os.environ.get('BOYUE_API_KEY')
 
         self.logger.info(f'Using API Base: {self.api_base}; API Key: {self.key}')
 
